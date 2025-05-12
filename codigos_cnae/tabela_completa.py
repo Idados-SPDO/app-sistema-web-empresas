@@ -1,8 +1,6 @@
 import streamlit as st
 import pandas as pd
 import snowflake.connector
-from io import BytesIO
-from streamlit_pagination import pagination_component
 
 st.set_page_config(
     page_title="Tabela Completa - Sistema Web Empresa", 
