@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
-import requests
+import json
+from pathlib import Path
 
 st.set_page_config(
     page_title="Dicionário de Dados - Sistema Web Empresa", 
@@ -10,14 +11,21 @@ st.set_page_config(
 # --- Query e cache ---------------------------------------------------------
 @st.cache_data(show_spinner=False)
 def load_layout():
-    url = "https://cdn.datatables.net/plug-ins/1.10.11/i18n/Portuguese-Brasil.json"
-
-    response = requests.get(url)
-    if response.status_code == 200:
-        return response.json()
-    else:
-        st.error(f"Erro ao carregar JSON: {response.status_code}")
-        return {}
+    # 1) monta o caminho relativo à raiz do projeto
+    json_path = Path.cwd() / "layout" / "dicionario.json"
+    
+    # 2) opcional: se quiser um fallback caso muda o cwd em algum ambiente
+    if not json_path.exists():
+        json_path = Path(__file__).resolve().parent / "layout" / "dicionario.json"
+    
+    # 3) tenta abrir
+    try:
+        return json.loads(json_path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        st.error(f"Arquivo não encontrado em:\n{json_path}")
+    except json.JSONDecodeError as e:
+        st.error(f"Erro ao decodificar JSON em {json_path}:\n{e}")
+    return {}
 
 # --- App principal ---------------------------------------------------------
 def main():
@@ -36,10 +44,17 @@ def main():
     st.write("---")
 
     # carrega e exibe o layout
-    dados_json = load_layout()
+        # carrega o JSON
+    layout = load_layout()
 
-    # Exibir os dados no Streamlit
-    st.title("Visualizador de JSON do DataTables")
-    st.json(dados_json)
+        # 1) Se for um mapeamento simples chave->valor, vira um DF de duas colunas
+    df_kv = pd.DataFrame(
+            list(layout.items()),
+            columns=['Variável', 'Descrição']
+    )
+
+        # no Streamlit, basta:
+    st.dataframe(df_kv)
+
 
 main()
