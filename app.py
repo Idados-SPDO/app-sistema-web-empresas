@@ -23,7 +23,7 @@ def main():
             "Consulta": [cnae_uf, cnae_cities, cnpj],
             "Overview": [overview],
             "Códigos CNAE": [cnae_codes],
-            ##"Layout": [data_dict]
+            "Layout": [data_dict]
         }
     )
     
