@@ -6,6 +6,15 @@ from io import BytesIO
 
 st.set_page_config(page_title="CNAE/Cidades - Sistema Web Empresa", page_icon="logo_fgv.png")
 
+st.markdown("""
+<style>
+span[data-baseweb="tag"] {
+  color: white;
+  background-color: #0E59E6;
+}
+</style>
+""", unsafe_allow_html=True)
+
 def get_connection():
     return snowflake.connector.connect(
         account   = st.secrets["snowflake"]["account"],
@@ -86,7 +95,7 @@ with st.container(border=True):
     selected_cnaes = st.multiselect(
         "Atividade Econômica:",
         options=cnae_opts,
-        default=[cnae_opts[0]] if cnae_opts else [],
+        default=[],
         key="cnae_select_city"
     )
 
@@ -97,7 +106,7 @@ with st.container(border=True):
     selected_ufs = col1.multiselect(
         "UF:",
         options=uf_opts,
-        default=[uf_opts[0]] if uf_opts else [],
+        default= [],
         key="uf_select_city",
         help="Digite a UF de interesse. (Ex: SP)"
     )
@@ -160,10 +169,62 @@ if df_city is not None:
                 key="download_city"
             )
 
+            labels = {
+                "CNPJ": "CNPJ",
+                "NOME_FANTASIA": "Nome Fantasia",
+                "RAZAO_SOCIAL": "Razão Social",
+                "MATRIZ_FILIAL": "Matriz/Filial",
+                "PORTE": "Porte",
+                "CAPITAL": "Capital Social",
+                "SITUACAO": "Situação",
+                "CNAE_FISCAL": "CNAE Fiscal",
+                "CNAE_DESCR": "Descrição CNAE",
+                "CNAE_SECUNDARIO": "CNAE Secundário",
+                "LOGRADOURO": "Logradouro",
+                "NUMERO": "Número",
+                "COMPLEMENTO": "Complemento",
+                "BAIRRO": "Bairro",
+                "CEP": "CEP",
+                "UF": "UF",
+                "MUNICIPIO": "Município",
+                "DDD_1": "DDD 1",
+                "TELEFONE_1": "Telefone 1",
+                "DDD_2": "DDD 2",
+                "TELEFONE_2": "Telefone 2",
+                "EMAIL": "E-mail"
+            }
+            def formatar_texto(row: pd.Series) -> str:
+                linhas = []
+                for col, rotulo in labels.items():
+                    valor = row.get(col, "")
+                    if pd.notna(valor) and str(valor).strip():
+                        linhas.append(f"**{rotulo}:** {valor}")
+                # separa com duas quebras de linha para melhor leitura no Markdown
+                return "\n\n".join(linhas)
+            def safe(val):
+                return val if pd.notna(val) and str(val).strip() else "--"
+
+            header_cols = [
+                "CNPJ",
+                "Nome Fantasia",
+                "Matriz/Filial",
+                "Porte",
+                "Capital",
+                "CNAE Fiscal",
+                "Descrição CNAE"
+            ]
+            st.markdown("**" + "** | **".join(header_cols) + "**")
             # exibição paginada
             for _, record in page_df.iterrows():
-                cnpj  = record.get("CNPJ")
-                razao = record.get("RAZAO_SOCIAL")
-                header = f"{cnpj} – {razao}" if razao and pd.notna(razao) and str(razao).strip() else cnpj
-                with st.expander(header):
-                    st.write(record.to_dict())
+                cnpj          = safe(record.get("CNPJ"))
+                nome_fant     = safe(record.get("NOME_FANTASIA"))
+                matriz_filial = safe(record.get("MATRIZ_FILIAL"))
+                porte         = safe(record.get("PORTE"))
+                capital       = safe(record.get("CAPITAL"))
+                cnae_fiscal   = safe(record.get("CNAE_FISCAL"))
+                cnae_descr    = safe(record.get("CNAE_DESCR"))
+
+                # monta o título do expander
+                title = f"{cnpj} | {nome_fant} | {matriz_filial} | {porte} | {capital} | {cnae_fiscal} | {cnae_descr}"
+                with st.expander(title):
+                    st.write(formatar_texto(record))
