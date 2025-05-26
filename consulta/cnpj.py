@@ -15,6 +15,7 @@ def get_connection():
     )
 
 def execute_search_query_cnpj(cnpj):
+    cnpj = cnpj.translate(str.maketrans("", "", "./-"))
     conn   = get_connection()
     query  = f"SELECT * FROM TB_MVP_CONS WHERE CNPJ = '{cnpj}'"
     cur    = conn.cursor()
@@ -28,9 +29,46 @@ def execute_search_query_cnpj(cnpj):
 def mod_cons_cnpj_ui():
     with st.container(border=True):
         st.title("Filtros: CNPJ")
-        input_cnpj = st.text_input("CNPJ:", value="", key="input_cnpj", help="Digite o CNPJ de interesse (Exemplo: 26909999000260)")
+        input_cnpj = st.text_input("CNPJ:", value="", key="input_cnpj", help="Digite o CNPJ de interesse (Exemplo: 26909999000260 ou 26.909.999/0002-60)")
         pesquisar  = st.button("Pesquisar", key="search_cnpj")
     return input_cnpj, pesquisar
+
+labels = {
+                "CNPJ": "CNPJ",
+                "NOME_FANTASIA": "Nome Fantasia",
+                "RAZAO_SOCIAL": "Razão Social",
+                "MATRIZ_FILIAL": "Matriz/Filial",
+                "PORTE": "Porte",
+                "CAPITAL": "Capital Social",
+                "SITUACAO": "Situação",
+                "CNAE_FISCAL": "CNAE Fiscal",
+                "CNAE_DESCR": "Descrição CNAE",
+                "CNAE_SECUNDARIO": "CNAE Secundário",
+                "LOGRADOURO": "Logradouro",
+                "NUMERO": "Número",
+                "COMPLEMENTO": "Complemento",
+                "BAIRRO": "Bairro",
+                "CEP": "CEP",
+                "UF": "UF",
+                "MUNICIPIO": "Município",
+                "DDD_1": "DDD 1",
+                "TELEFONE_1": "Telefone 1",
+                "DDD_2": "DDD 2",
+                "TELEFONE_2": "Telefone 2",
+                "EMAIL": "E-mail"
+            }
+def formatar_texto(row: pd.Series) -> str:
+                linhas = []
+                for col, rotulo in labels.items():
+                    valor = row.get(col, "")
+                    if pd.notna(valor) and str(valor).strip():
+                        linhas.append(f"**{rotulo}:** {valor}")
+                # separa com duas quebras de linha para melhor leitura no Markdown
+                return "\n\n".join(linhas)
+
+def safe(val):
+                return val if pd.notna(val) and str(val).strip() else "--"
+
 
 def mod_cons_cnpj_server(input_cnpj, pesquisar):
     if pesquisar:
@@ -45,12 +83,30 @@ def mod_cons_cnpj_server(input_cnpj, pesquisar):
             st.warning("Não há dados para o CNPJ informado.")
         else:
             with st.container(border=True):
+                header_cols = [
+                    "CNPJ",
+                    "Nome Fantasia",
+                    "Matriz/Filial",
+                    "Porte",
+                    "Capital",
+                    "CNAE Fiscal",
+                    "Descrição CNAE"
+                ]
+                st.markdown("**" + "** | **".join(header_cols) + "**")
                 for _, row in df_result.iterrows():
-                    cnpj = row.get("CNPJ", "")
-                    razao   = row.get("RAZAO_SOCIAL")
-                    header = f"{cnpj} – {razao}" if razao and pd.notna(razao) and str(razao).strip() else cnpj
-                    with st.expander(header):
-                        st.write(row.to_dict())
+                    cnpj          = safe(row.get("CNPJ"))
+                    nome_fant     = safe(row.get("NOME_FANTASIA"))
+                    matriz_filial = safe(row.get("MATRIZ_FILIAL"))
+                    porte         = safe(row.get("PORTE"))
+                    capital       = safe(row.get("CAPITAL"))
+                    cnae_fiscal   = safe(row.get("CNAE_FISCAL"))
+                    cnae_descr    = safe(row.get("CNAE_DESCR"))
+
+                    # monta o título do expander
+                    title = f"{cnpj} | {nome_fant} | {matriz_filial} | {porte} | {capital} | {cnae_fiscal} | {cnae_descr}"
+                    
+                    with st.expander(title):
+                        st.write(formatar_texto(row))
 
 input_cnpj, pesquisar = mod_cons_cnpj_ui()
 mod_cons_cnpj_server(input_cnpj, pesquisar)
