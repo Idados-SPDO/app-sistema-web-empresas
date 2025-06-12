@@ -115,6 +115,19 @@ if df_uf is None:
 elif df_uf.empty:
     st.warning("Não há dados para exibir para os filtros selecionados")
 else:
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+        df_uf.to_excel(writer, index=False, sheet_name="Empresas")
+        writer.close()
+    output.seek(0)  # volta o cursor para o início do buffer
+
+    st.download_button(
+        label="📥 Baixar dados filtrados (Excel)",
+        data=output,
+        file_name=f"consulta-cnae-uf.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        help="Exporta todos os registros que atendem aos filtros"
+    )
     # 1) prepara o DataFrame que será exibido (só 4 colunas + índice original)
     cols_visíveis = ["CNPJ", "NOME_FANTASIA", "MATRIZ_FILIAL", "PORTE", "CAPITAL","CNAE_FISCAL", "CNAE_DESCR"]
     disp = df_uf[cols_visíveis].copy()
