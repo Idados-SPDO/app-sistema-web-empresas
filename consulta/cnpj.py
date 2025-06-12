@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import snowflake.connector
 import math
+from io import BytesIO
 from st_aggrid import AgGrid, GridOptionsBuilder
 
 st.set_page_config(page_title="CNPJ - Sistema Web Empresa", page_icon="logo_fgv.png", layout='wide')
@@ -99,7 +100,20 @@ def mod_cons_cnpj_server(input_cnpj, pesquisar):
     if df_result.empty:
         st.warning("Não há dados para o CNPJ informado.")
         return
+    
+    buffer = BytesIO()
+    with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
+        df_result.to_excel(writer, sheet_name="Resultado", index=False)
+        writer.close()
+    buffer.seek(0)
 
+    st.download_button(
+        label="📥 Baixar resultado (Excel)",
+        data=buffer,
+        file_name=f"consulta_cnpj_{input_cnpj.strip()}.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        key="dl_xlsx_cnpj"
+    )
     # 4) Garante que existe a coluna orig_index
     if "orig_index" not in df_result.columns:
         df_result["orig_index"] = df_result.index
