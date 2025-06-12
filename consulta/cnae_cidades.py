@@ -170,6 +170,19 @@ if df_city is not None:
     if df_city.empty:
         st.warning("Não há dados para exibir para os filtros selecionados")
     else:
+        output = BytesIO()
+    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+        df_city.to_excel(writer, index=False, sheet_name="Empresas")
+        writer.close()
+        output.seek(0)  # volta o cursor para o início do buffer
+
+        st.download_button(
+            label="📥 Baixar dados filtrados (Excel)",
+            data=output,
+            file_name=f"consulta-cnae-cidades.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            help="Exporta todos os registros que atendem aos filtros"
+        )
         df_city["orig_index"] = df_city.index
 
         cols_visíveis = [
